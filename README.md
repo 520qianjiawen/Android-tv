@@ -41,7 +41,7 @@ STOCK_LAUNCHER=com.dangbei.TVHomeLauncher scripts/install-launcher.sh
 
 ## 桌面功能与排序
 
-- 底部：Netflix → 电视 → VidHub → 云视听小电视；YouTube 位于下方应用列表。
+- 底部：电视 → 云视听小电视 → VidHub → YouTube；Netflix 位于下方应用列表。
 - 下方：用户安装应用在前，系统预装应用在后；各组内按名称排序。
 - 遥控器向下展开应用列表，顶部提供输入源、Wi-Fi 和设置入口。
 - 应用列表最前方显示电视报告为正常连接的输入源快捷图标；待机或未连接的端口不显示，连接状态改变时自动刷新。

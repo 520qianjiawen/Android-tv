@@ -7,10 +7,10 @@
 
     <!-- Apps pinned to the dock row at the bottom, in this order. Missing apps are skipped. -->
     <string-array name="dock_apps">
-        <item>com.netflix.mediaclient</item>
         <item>com.sony.dtv.tvx</item>
-        <item>com.oumi.utility.media.hub</item>
         <item>com.xiaodianshi.tv.yst</item>
+        <item>com.oumi.utility.media.hub</item>
+        <item>com.amazon.firetv.youtube</item>
     </string-array>
 
     <!-- Apps never shown as tiles. -->
