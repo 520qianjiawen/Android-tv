@@ -8,8 +8,6 @@ import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
-import android.media.tv.TvContract;
-import android.media.tv.TvInputInfo;
 import android.media.tv.TvInputManager;
 import android.net.ConnectivityManager;
 import android.net.Network;
@@ -42,7 +40,6 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -70,6 +67,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private float glassTargetX, glassTargetY;
     private boolean glassShown;
     private int lastFocused = 0;
+    private String lastFocusedKey = "";
+    private TvInputManager inputManager;
+    private final TvInputManager.TvInputCallback inputCallback = new TvInputManager.TvInputCallback() {
+        @Override public void onInputAdded(String id) { refreshInputTiles(); }
+        @Override public void onInputRemoved(String id) { refreshInputTiles(); }
+        @Override public void onInputUpdated(String id) { refreshInputTiles(); }
+        @Override public void onInputStateChanged(String id, int state) { refreshInputTiles(); }
+    };
     private float density;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -89,6 +94,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         density = getResources().getDisplayMetrics().density;
         COLUMNS = Math.max(1, getResources().getInteger(R.integer.columns));
         liveTvPkg = getString(R.string.live_tv_package).trim();
+        inputManager = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
 
         root = findViewById(R.id.root);
         glass = findViewById(R.id.glass);
@@ -175,6 +181,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         heroName.setAlpha(0f);
         ambient.setAlpha(0f);
         adapter.reload();
+        restoreTilePosition();
+        if (inputManager != null) inputManager.registerCallback(inputCallback, handler);
         grid.scheduleLayoutAnimation();
         updateGreeting();
         updateWifiLabel();
@@ -192,6 +200,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onPause() {
         super.onPause();
         handler.removeCallbacks(minuteTick);
+        if (inputManager != null) inputManager.unregisterCallback(inputCallback);
+    }
+
+    private void restoreTilePosition() {
+        int remembered = adapter.positionOfKey(lastFocusedKey);
+        lastFocused = remembered >= 0 ? remembered : Math.max(0, Math.min(lastFocused, adapter.getItemCount() - 1));
+        lastFocusedKey = adapter.keyAt(lastFocused);
+    }
+
+    private void refreshInputTiles() {
+        View focused = getCurrentFocus();
+        boolean onTile = focused != null && grid.findContainingViewHolder(focused) != null;
+        adapter.reload();
+        restoreTilePosition();
+        if (onTile) grid.post(() -> focusTile(lastFocused));
     }
 
     @Override
@@ -204,6 +227,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     public void onTileFocused(int position, View card) {
         lastFocused = position;
+        lastFocusedKey = adapter.keyAt(position);
         // Tile rect in root coordinates, using layout positions (ignores the scale animation).
         Rect r = new Rect(0, 0, card.getWidth(), card.getHeight());
         root.offsetDescendantRectToMyCoords(card, r);
@@ -402,32 +426,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         popup.setAnimationStyle(0);
         popup.setElevation(0f);
 
-        TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
         boolean sawNonHdmi = false;
-        if (tim != null) {
-            List<TvInputInfo> inputs = new ArrayList<>(tim.getTvInputList());
-            // HDMI ports first in port order, then AV and the rest.
-            Collections.sort(inputs, (a, b) -> {
-                boolean ha = a.getType() == TvInputInfo.TYPE_HDMI, hb = b.getType() == TvInputInfo.TYPE_HDMI;
-                if (ha != hb) return ha ? -1 : 1;
-                return String.valueOf(a.loadLabel(this)).compareToIgnoreCase(String.valueOf(b.loadLabel(this)));
-            });
-            for (TvInputInfo info : inputs) {
-                if (!info.isPassthroughInput()) continue;
-                CharSequence l = info.loadLabel(this);
-                String label = l == null ? info.getId() : l.toString();
-                boolean hdmi = info.getType() == TvInputInfo.TYPE_HDMI;
-                if (hdmi && !label.toUpperCase().contains("HDMI")) label = "HDMI " + label;
-                final String id = info.getId();
-                int state = tim.getInputState(id);
-                if (!hdmi && rows.getChildCount() > 0 && !sawNonHdmi) addSeparator(rows);
-                if (!hdmi) sawNonHdmi = true;
-                addInputRow(rows, popup, hdmi ? R.drawable.ic_input : R.drawable.ic_av, label, state,
-                        () -> open(new Intent(Intent.ACTION_VIEW).setDataAndType(
-                                TvContract.buildChannelUriForPassthroughInput(id), "vnd.android.cursor.item/channel")));
-            }
+        for (TvInputs.Source input : TvInputs.load(this, false)) {
+            if (!input.hdmi && rows.getChildCount() > 0 && !sawNonHdmi) addSeparator(rows);
+            if (!input.hdmi) sawNonHdmi = true;
+            addInputRow(rows, popup, input.iconRes(), input.label, input.state,
+                    () -> open(input.intent()));
         }
-        Intent liveTv = liveTvPkg.isEmpty() ? null : getPackageManager().getLeanbackLaunchIntentForPackage(liveTvPkg);
+        // Always append Live TV after the physical inputs, including TVs without a launcher intent.
+        Intent liveTv = TvInputs.liveTvIntent(this, liveTvPkg);
         if (liveTv != null) {
             if (rows.getChildCount() > 0) addSeparator(rows);
             addInputRow(rows, popup, R.drawable.ic_livetv, getString(R.string.live_tv), -1, () -> open(liveTv));
@@ -442,7 +449,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         panel.setPivotY(0f);
         panel.setScaleY(0.92f);
         panel.setTranslationY(-8 * density);
-        popup.showAsDropDown(anchor, 0, (int) (10 * density), Gravity.START);
+        int offset = (int) (10 * density);
+        int available = popup.getMaxAvailableHeight(anchor, offset);
+        panel.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(Math.max(1, available), View.MeasureSpec.AT_MOST));
+        popup.setHeight(Math.min(panel.getMeasuredHeight(), Math.max(1, available)));
+        popup.showAsDropDown(anchor, 0, offset, Gravity.START);
         panel.animate().alpha(1f).scaleY(1f).translationY(0f).setDuration(220)
                 .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
         rows.getChildAt(0).requestFocus();

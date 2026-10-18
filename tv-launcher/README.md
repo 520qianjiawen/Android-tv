@@ -48,6 +48,9 @@ A small native Android TV home screen (`com.gathin.tvhome`), built for sets with
 - Frosted pills top right: **Inputs** (a dropdown of HDMI ports, AV and Live TV), **Wi-Fi**
   (shows the network name) and **Settings**. Greeting, a large thin clock and the date top left,
   set in [Outfit](https://fonts.google.com/specimen/Outfit).
+- Connected input shortcuts appear first in the expanded app grid and update while the home
+  screen is visible. Standby and disconnected inputs are excluded; HDMI-CEC devices share their
+  physical port's shortcut. The scrollable Inputs menu retains all physical inputs, with Live TV last.
 - Deterministic D-pad navigation, last focused tile remembered, staggered entrance animation.
   No blur, no video, no network, no background services.
 

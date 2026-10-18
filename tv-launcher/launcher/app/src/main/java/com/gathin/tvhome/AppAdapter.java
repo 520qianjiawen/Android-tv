@@ -37,7 +37,7 @@ import java.util.Set;
 
 /**
  * App tiles. The first {@link MainActivity#COLUMNS} positions are the pinned dock (favourites, fixed order),
- * the rest is user-installed apps first, then system apps, alphabetical within each group.
+ * followed by connected inputs, user-installed apps and system apps, alphabetical within each group.
  */
 public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
@@ -55,6 +55,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         final Drawable banner;
         final Drawable icon;
         final boolean systemApp;
+        final TvInputs.Source input;
         int ambient;
 
         Entry(String label, ComponentName component, Drawable banner, Drawable icon, boolean systemApp) {
@@ -64,6 +65,20 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             this.banner = banner;
             this.icon = icon;
             this.systemApp = systemApp;
+            this.input = null;
+        }
+        Entry(Context context, TvInputs.Source input) {
+            this.label = input.label;
+            this.component = null;
+            this.pkg = "";
+            this.banner = null;
+            this.icon = context.getDrawable(input.iconRes());
+            this.systemApp = false;
+            this.input = input;
+        }
+
+        String key() {
+            return input == null ? "app:" + pkg : "input:" + input.id;
         }
     }
 
@@ -117,6 +132,10 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             int byName = a.label.compareToIgnoreCase(b.label);
             return byName != 0 ? byName : a.pkg.compareTo(b.pkg);
         });
+        List<Entry> inputs = new ArrayList<>();
+        for (TvInputs.Source input : TvInputs.load(ctx, true)) inputs.add(new Entry(ctx, input));
+        // Keep the four dock slots in place; connected sources are the first grid shortcuts.
+        fresh.addAll(Math.min(dockSize, fresh.size()), inputs);
         items.clear();
         items.addAll(fresh);
         notifyDataSetChanged();
@@ -150,7 +169,13 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             h.label.setText(e.label);
             h.label.setVisibility(View.VISIBLE);
         }
+        h.card.setContentDescription(e.label);
         h.card.setOnClickListener(v -> launch(e));
+        if (e.input != null) {
+            h.card.setOnLongClickListener(null);
+            h.card.setLongClickable(false);
+            return;
+        }
         h.card.setOnLongClickListener(v -> {
             Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + e.pkg));
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -163,7 +188,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     }
 
     private void launch(Entry e) {
-        Intent i = new Intent(Intent.ACTION_MAIN)
+        Intent i = e.input != null ? e.input.intent().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                : new Intent(Intent.ACTION_MAIN)
                 .addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
                 .setComponent(e.component)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
@@ -181,6 +207,15 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
     String labelAt(int position) {
         return position >= 0 && position < items.size() ? items.get(position).label : "";
+    }
+
+    String keyAt(int position) {
+        return position >= 0 && position < items.size() ? items.get(position).key() : "";
+    }
+
+    int positionOfKey(String key) {
+        for (int i = 0; i < items.size(); i++) if (items.get(i).key().equals(key)) return i;
+        return -1;
     }
 
     /** A vivid colour sampled from the app's banner (or icon), cached per entry. */

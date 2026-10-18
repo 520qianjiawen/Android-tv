@@ -44,6 +44,8 @@ STOCK_LAUNCHER=com.dangbei.TVHomeLauncher scripts/install-launcher.sh
 - 底部：Netflix → YouTube → VidHub → 云视听小电视。
 - 下方：用户安装应用在前，系统预装应用在后；各组内按名称排序。
 - 遥控器向下展开应用列表，顶部提供输入源、Wi-Fi 和设置入口。
+- 应用列表最前方显示电视报告为正常连接的输入源快捷图标；待机或未连接的端口不显示，连接状态改变时自动刷新。
+- Inputs 菜单保留全部物理输入源，Live TV 固定在最后；长菜单可用方向键向下滚动。
 - 支持电视应用入口和普通应用入口，并按包名去重。
 
 修改 [config.xml](tv-launcher/launcher/app/src/main/res/values/config.xml) 的 `dock_apps` 后重新构建，即可调整底部顺序。当前背景为黑色及跟随焦点应用的环境光，没有遥控器拖拽排序或图片壁纸设置界面。
