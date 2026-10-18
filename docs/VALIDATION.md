@@ -27,6 +27,12 @@
 - `:app:assembleDebug` 构建与 APK 签名验证通过，已覆盖安装；只读确认电视上的版本为 2.3 / versionCode 5。
 - 此次仅调整排序配置，未远程操作界面，显示效果由使用者自行检查。
 
+### 桌面 2.4 底栏排序
+
+- 底栏改为“电视 → VidHub → YouTube → 云视听小电视”；Netflix 保持在下方应用列表。
+- `:app:assembleDebug` 构建与 APK 签名验证通过，已覆盖安装；只读确认电视上的版本为 2.4 / versionCode 6。
+- 未远程操作界面，显示效果由使用者自行检查。
+
 ## v2rayNG
 
 - 完整 2.3.11 项目 Kotlin/Java 编译成功。
