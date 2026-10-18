@@ -1,0 +1,40 @@
+name: Android build
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: v2rayng/AndroidLibXrayLite/go.mod
+      - uses: android-actions/setup-android@v4
+        with:
+          cmdline-tools-version: '14742923'
+          packages: 'platforms;android-37.0 build-tools;37.0.0 platform-tools'
+          log-accepted-android-sdk-licenses: false
+      - name: Native build tools
+        run: sdkmanager 'ndk;29.0.14206865' 'ndk;30.0.16248370'
+      - name: Build v2rayNG
+        run: scripts/build-v2rayng.sh
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Launcher build tools
+        run: sdkmanager 'platforms;android-34' 'build-tools;34.0.0'
+      - name: Build launcher
+        run: scripts/build-launcher.sh
+      - uses: actions/upload-artifact@v7
+        with:
+          name: sony-android-tv-apks
+          path: dist/*.apk
