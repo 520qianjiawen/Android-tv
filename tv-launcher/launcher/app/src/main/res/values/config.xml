@@ -8,14 +8,13 @@
     <!-- Apps pinned to the dock row at the bottom, in this order. Missing apps are skipped. -->
     <string-array name="dock_apps">
         <item>com.netflix.mediaclient</item>
-        <item>com.amazon.firetv.youtube</item>
+        <item>com.sony.dtv.tvx</item>
         <item>com.oumi.utility.media.hub</item>
         <item>com.xiaodianshi.tv.yst</item>
     </string-array>
 
-    <!-- Apps never shown as tiles (e.g. the Live TV app, which the Inputs menu already covers). -->
+    <!-- Apps never shown as tiles. -->
     <string-array name="hidden_apps">
-        <item>com.sony.dtv.tvx</item>
         <item>com.dangbei.TVHomeLauncher</item>
     </string-array>
 

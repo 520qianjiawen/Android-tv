@@ -117,6 +117,11 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             if (banner == null) banner = ri.activityInfo.applicationInfo.loadBanner(pm);
             Drawable icon = ri.loadIcon(pm);
             String label = String.valueOf(ri.loadLabel(pm));
+            if (pkg.equals(ctx.getString(R.string.live_tv_package).trim())) {
+                label = ctx.getString(R.string.live_tv);
+                banner = null;
+                icon = ctx.getDrawable(R.drawable.ic_livetv);
+            }
             boolean systemApp = (ri.activityInfo.applicationInfo.flags
                     & (ApplicationInfo.FLAG_SYSTEM | ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) != 0;
             fresh.add(new Entry(label, new ComponentName(pkg, ri.activityInfo.name), banner, icon, systemApp));
