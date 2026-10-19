@@ -1,5 +1,6 @@
 package com.gathin.tvhome;
 
+import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.media.tv.TvContract;
@@ -37,6 +38,52 @@ final class TvInputs {
             return new Intent(Intent.ACTION_VIEW).setDataAndType(
                     TvContract.buildChannelUriForPassthroughInput(id),
                     TvContract.Channels.CONTENT_ITEM_TYPE);
+        }
+    }
+
+    /** Opens an input source with device-appropriate intents (Xiaomi TV player -> Android TV Live Channels -> Xiaomi popup). */
+    static void launch(Context context, Source input) {
+        // 1. Try Xiaomi TV Player directly (for Xiaomi / Redmi TV)
+        try {
+            int sourceId = -1;
+            String idUpper = input.id != null ? input.id.toUpperCase(Locale.ROOT) : "";
+            String labelUpper = input.label != null ? input.label.toUpperCase(Locale.ROOT) : "";
+            if (idUpper.contains("HW5") || labelUpper.contains("HDMI 1") || labelUpper.endsWith("1")) {
+                sourceId = 23;
+            } else if (idUpper.contains("HW6") || labelUpper.contains("HDMI 2") || labelUpper.endsWith("2")) {
+                sourceId = 24;
+            } else if (idUpper.contains("HW7") || labelUpper.contains("HDMI 3") || labelUpper.endsWith("3")) {
+                sourceId = 25;
+            } else if (idUpper.contains("HW2") || labelUpper.contains("AV")) {
+                sourceId = 2;
+            }
+
+            Intent miIntent = new Intent();
+            miIntent.setClassName("com.xiaomi.mitv.tvplayer", "com.xiaomi.mitv.tvplayer.ExternalSourceActivity");
+            if (context.getPackageManager().resolveActivity(miIntent, 0) != null) {
+                if (sourceId != -1) {
+                    miIntent.putExtra("input", sourceId);
+                }
+                miIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(miIntent);
+                return;
+            }
+        } catch (Exception ignored) {
+        }
+
+        // 2. Try standard Android TV Live Channels intent (Sony BRAVIA, Google TV, Android TV)
+        try {
+            Intent standardIntent = input.intent().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(standardIntent);
+            return;
+        } catch (ActivityNotFoundException | SecurityException ignored) {
+        } catch (Exception ignored) {
+        }
+
+        // 3. Fallback: Xiaomi native input source popup broadcast
+        try {
+            context.sendBroadcast(new Intent("com.xiaomi.mitv.settings.INPUTSOURCE_POPUP"));
+        } catch (Exception ignored) {
         }
     }
 

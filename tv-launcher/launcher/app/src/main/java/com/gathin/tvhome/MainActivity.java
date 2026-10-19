@@ -150,6 +150,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         View btnInputs = findViewById(R.id.btnInputs);
         View btnSettings = findViewById(R.id.btnSettings);
         btnInputs.setOnClickListener(v -> showInputs());
+        btnInputs.setOnLongClickListener(v -> {
+            try {
+                sendBroadcast(new Intent("com.xiaomi.mitv.settings.INPUTSOURCE_POPUP"));
+                return true;
+            } catch (Exception e) {
+                return false;
+            }
+        });
         btnWifi.setOnClickListener(v -> open(new Intent(Settings.ACTION_WIFI_SETTINGS)));
         btnSettings.setOnClickListener(v -> open(new Intent(Settings.ACTION_SETTINGS)));
 
@@ -408,6 +416,24 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         try {
             startActivity(i);
         } catch (ActivityNotFoundException e) {
+            String act = i.getAction();
+            if (Settings.ACTION_SETTINGS.equals(act)) {
+                try {
+                    Intent s = new Intent();
+                    s.setClassName("com.xiaomi.mitv.settings", "com.xiaomi.mitv.settings.entry.MainActivity");
+                    s.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(s);
+                    return;
+                } catch (Exception ignored) {}
+            } else if (Settings.ACTION_WIFI_SETTINGS.equals(act)) {
+                try {
+                    Intent w = new Intent();
+                    w.setClassName("com.xiaomi.mitv.settings", "com.xiaomi.mitv.settings.wifi.MitvWifiActivity");
+                    w.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(w);
+                    return;
+                } catch (Exception ignored) {}
+            }
             Toast.makeText(this, "Not available on this TV", Toast.LENGTH_SHORT).show();
         }
     }
@@ -431,7 +457,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (!input.hdmi && rows.getChildCount() > 0 && !sawNonHdmi) addSeparator(rows);
             if (!input.hdmi) sawNonHdmi = true;
             addInputRow(rows, popup, input.iconRes(), input.label, input.state,
-                    () -> open(input.intent()));
+                    () -> TvInputs.launch(this, input));
         }
         // Always append Live TV after the physical inputs, including TVs without a launcher intent.
         Intent liveTv = TvInputs.liveTvIntent(this, liveTvPkg);
@@ -440,7 +466,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             addInputRow(rows, popup, R.drawable.ic_livetv, getString(R.string.live_tv), -1, () -> open(liveTv));
         }
         if (rows.getChildCount() == 0) {
-            Toast.makeText(this, R.string.no_inputs, Toast.LENGTH_SHORT).show();
+            try {
+                sendBroadcast(new Intent("com.xiaomi.mitv.settings.INPUTSOURCE_POPUP"));
+            } catch (Exception e) {
+                Toast.makeText(this, R.string.no_inputs, Toast.LENGTH_SHORT).show();
+            }
             return;
         }
 

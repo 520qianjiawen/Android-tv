@@ -33,6 +33,22 @@
 - `:app:assembleDebug` 构建与 APK 签名验证通过，已覆盖安装；只读确认电视上的版本为 2.4 / versionCode 6。
 - 未远程操作界面，显示效果由使用者自行检查。
 
+### 桌面 2.5 小米 / Redmi 电视适配与精简验证
+
+- **实机环境**：Redmi / 小米电视（`MiTV-MTTP0`，硬件代号 `hugo`，MediaTek MT9632 芯片，Android 9，MIUI TV 稳定版 `21.10.29.3795`）。
+- **信号源直切验证**：
+  - Apple TV 连接在 HDMI 1（底层硬件端口 `HW5`）。
+  - 通过 `TvInputs` / `com.xiaomi.mitv.tvplayer/.ExternalSourceActivity` 直切 `input` 23，信号源切换成功（日志验证：`onSourceSignalStable 23, true`），Apple TV 画面即时正常输出。
+  - 长按顶部 Inputs 按钮，触发原生广播 `com.xiaomi.mitv.settings.INPUTSOURCE_POPUP`，原生信号源悬浮选单成功呼出。
+  - HDMI EDID 设置 `tv_input_hdmi_edid_version 1`，解决 4K 60Hz HDR 搜索信号等待问题。
+- **系统设置与网络降级**：
+  - 测试进入系统设置和 Wi-Fi，成功捕获 `ActivityNotFoundException` 并自动跳转至小米原生设置应用，无崩溃。
+- **PatchWall 替换与开机自启**：
+  - TvHome 设置为默认桌面，停用 `com.mitv.tvhome`。按遥控器 Home 键即刻返回 TvHome 极简桌面。
+- **系统精简安全验证**：
+  - 停用 PatchWall 资讯流、云控、Samba 遥测、开屏广告及测试应用等 16 项冗余包。
+  - 实机验证：音量调节、画质引擎（杜比/DTS）、蓝牙遥控器、Wi-Fi/以太网与投屏功能均完全正常。
+
 ## v2rayNG
 
 - 完整 2.3.11 项目 Kotlin/Java 编译成功。

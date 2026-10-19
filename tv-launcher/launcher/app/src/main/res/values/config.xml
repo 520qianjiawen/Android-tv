@@ -16,6 +16,7 @@
     <!-- Apps never shown as tiles. -->
     <string-array name="hidden_apps">
         <item>com.dangbei.TVHomeLauncher</item>
+        <item>com.mitv.tvhome</item>
     </string-array>
 
     <!-- The TV's Live TV / tuner app, offered at the end of the Inputs menu. Leave empty to omit. -->

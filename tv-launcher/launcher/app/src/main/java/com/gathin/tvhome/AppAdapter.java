@@ -193,8 +193,11 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     }
 
     private void launch(Entry e) {
-        Intent i = e.input != null ? e.input.intent().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                : new Intent(Intent.ACTION_MAIN)
+        if (e.input != null) {
+            TvInputs.launch(ctx, e.input);
+            return;
+        }
+        Intent i = new Intent(Intent.ACTION_MAIN)
                 .addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
                 .setComponent(e.component)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
